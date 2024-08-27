@@ -59,17 +59,20 @@ if __name__ == "__main__":
 
     # move the model to the device
     model = model.to(device)
+    model.eval()
 
     # make a dummy forward pass
     print("Making a dummy forward pass...", end=" ")
     warmup_passes = 50
     for i in range(warmup_passes):
-        x = torch.randn(4, 3, 448, 448).to(device)
+        x = torch.randn(1, 3, 448, 448).to(device)
         start_t = time.time()
         bboxes = model(x)
         end_t = time.time()
 
         if i == warmup_passes - 1:
             print(f"Done in {end_t-start_t}s.")
+
+    print(bboxes.shape)
 
     sys.exit(0)
