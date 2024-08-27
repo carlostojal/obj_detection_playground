@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from darknet import DarkNet
+from models.darknet import DarkNet
 from typing import Any, List
 from utils.yolo import make_conv_bn_layer
 
@@ -18,11 +18,12 @@ class YOLOv1(nn.Module):
         Args:
         - config: Any: configuration object as specified in the configs/yolov1.yaml file.
         """
-        self.grid_size = config.grid_size
-        self.num_classes = config.num_classes
+        super().__init__()
+        self.grid_size = int(config['grid_size'])
+        self.num_classes = config['num_classes']
 
         # initialize the backbone from the configuration
-        self.backbone = DarkNet(config.backbone)
+        self.backbone = DarkNet(config['backbone'])
 
         # initialize the classifier layers from the configuration
         self.classifier = self.generate_classifier_layers(config)
@@ -59,7 +60,7 @@ class YOLOv1(nn.Module):
         blocks: List[nn.Module] = []
 
         # iterate the conv blocks description
-        for block in config.classifier.conv_blocks:
+        for block in config['classifier']['conv_blocks']:
 
             # create a list of layers for the block
             layers: List[nn.Module] = []
@@ -67,8 +68,8 @@ class YOLOv1(nn.Module):
             in_channels = 1024
 
             # iterate the layers
-            for layer in block.layers:
-                blocks.append(make_conv_bn_layer(in_channels, layer[0], layers[1], layers[2], layers[3]), False)
+            for layer in block['layers']:
+                blocks.append(make_conv_bn_layer(in_channels, layer[0], layer[1], layer[2], layer[3], False))
 
         # create a sequential module from the blocks
         return nn.Sequential(*blocks)
