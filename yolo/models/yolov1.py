@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from darknet import DarkNet
 from typing import Any, List
+from utils.yolo import make_conv_bn_layer
 
 # TODO
 
@@ -67,14 +68,7 @@ class YOLOv1(nn.Module):
 
             # iterate the layers
             for layer in block.layers:
-                layers.append(nn.Conv2d(in_channels, layer[0], layer[1], layer[2], layer[3]))
-                layers.append(nn.BatchNorm2d(layer[0]))
-                layers.append(nn.LeakyReLU(0.1, inplace=True))
-                in_channels = layer[0]
-
-            # append the block to the list of blocks
-            blocks.append(nn.Sequential(*layers))
+                blocks.append(make_conv_bn_layer(in_channels, layer[0], layers[1], layers[2], layers[3]), False)
 
         # create a sequential module from the blocks
         return nn.Sequential(*blocks)
-
