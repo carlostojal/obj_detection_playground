@@ -1,10 +1,12 @@
 #! /usr/bin/python3
+import torch
 from argparse import ArgumentParser
 import os
 import sys
 import yaml
 sys.path.append(".")
 from models.yolov1 import YOLOv1
+import time
 
 if __name__ == "__main__":
 
@@ -48,5 +50,26 @@ if __name__ == "__main__":
     print("Done.")
 
     print(model)
+
+    # verify the available devices
+    device = torch.device("cpu")
+    if torch.cuda.is_available():
+        print("CUDA is available. Using GPU...")
+        device = torch.device("cuda")
+
+    # move the model to the device
+    model = model.to(device)
+
+    # make a dummy forward pass
+    print("Making a dummy forward pass...", end=" ")
+    warmup_passes = 50
+    for i in range(warmup_passes):
+        x = torch.randn(4, 3, 448, 448).to(device)
+        start_t = time.time()
+        bboxes = model(x)
+        end_t = time.time()
+
+        if i == warmup_passes - 1:
+            print(f"Done in {end_t-start_t}s.")
 
     sys.exit(0)
