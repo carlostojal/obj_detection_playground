@@ -23,7 +23,7 @@ conv_blocks:
       - [256, 3, 1, 1]
       - [256, 1, 1, 1]
       - [512, 3, 1, 1]
-  - n_layers: 9
+  - n_layers: 10
     layers:
       - [256, 1, 1, 1]
       - [512, 3, 1, 1]
@@ -61,7 +61,8 @@ conv_blocks:
       - [1024, 3, 1, 1]
 
 # fully-connected layers
-fc_layer:
+fc_layers:
   - dim: 4096
+  - droupout: 0.5
   # after this, activation, dropout, and another fc layer
   # final fc dimension: S*S*(B*5+C)
