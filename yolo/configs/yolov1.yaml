@@ -1,5 +1,6 @@
 batch_size: 64
 grid_size: 7
+num_boxes: 2
 num_classes: 20
 
 momentum: 0.9
@@ -65,7 +66,7 @@ classifier:
 
   # fully-connected layers
   fc_layers:
-  - dim: 4096
-  - droupout: 0.5
-  # after this, activation, dropout, and another fc layer
-  # final fc dimension: S*S*(B*5+C)
+    dim: 4096
+    dropout: 0.5
+    # after this, activation, dropout, and another fc layer
+    # final fc dimension: S*S*(B*5+C)
