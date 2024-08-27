@@ -22,8 +22,11 @@ class DarkNet(nn.Module):
         # iterate the conv blocks description
         for block in config['conv_blocks']:
             # iterate the block layers
+            n_layers = len(block['layers'])
+            cur_layer = 0
             for layer in block['layers']:
-                blocks.append(make_conv_bn_layer(in_channels, layer[0], layer[1], layer[2], layer[3], True))
+                blocks.append(make_conv_bn_layer(in_channels, layer[0], layer[1], layer[2], layer[3], cur_layer == n_layers-1))
                 in_channels = layer[0]
+                cur_layer += 1
 
         return nn.Sequential(*blocks)

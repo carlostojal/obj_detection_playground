@@ -70,6 +70,7 @@ class YOLOv1(nn.Module):
             # iterate the layers
             for layer in block['layers']:
                 blocks.append(make_conv_bn_layer(in_channels, layer[0], layer[1], layer[2], layer[3], False))
+                in_channels = layer[0]
 
         # create a sequential module from the blocks
         return nn.Sequential(*blocks)
