@@ -20,13 +20,17 @@ class YOLOv1(nn.Module):
         """
         super().__init__()
         self.grid_size = int(config['grid_size'])
-        self.num_classes = config['num_classes']
+        self.num_boxes = int(config['num_boxes'])
+        self.num_classes = int(config['num_classes'])
 
         # initialize the backbone from the configuration
         self.backbone = DarkNet(config['backbone'])
 
         # initialize the classifier layers from the configuration
         self.classifier = self.generate_classifier_layers(config)
+
+        # initialize the fully connected layers
+        self.fc = self.generate_fc_layers(config)
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -40,8 +44,16 @@ class YOLOv1(nn.Module):
         - torch.Tensor: output tensor of shape (B, S, S, 5 * B + C), where S is the grid size.
         """
 
-        features = self.backbone(x)
-        bboxes = self.classifier(features)
+        # extract features using the backbone
+        x = self.backbone(x)
+        # pass the features through the classifier
+        x = self.classifier(x)
+        # flatten the tensor
+        x = x.view(x.size(0), -1)
+        # pass through the fully connected layers to get the bounding boxes
+        bboxes = self.fc(x)
+        # reshape the bounding boxes
+        bboxes = bboxes.view(-1, self.grid_size, self.grid_size, (5 * self.num_boxes) + self.num_classes)
 
         return bboxes
     
@@ -74,3 +86,28 @@ class YOLOv1(nn.Module):
 
         # create a sequential module from the blocks
         return nn.Sequential(*blocks)
+    
+    def generate_fc_layers(self, config: Any) -> nn.Module:
+
+        layers: List[nn.Module] = []
+
+        # get the number of output channels from the classifier
+        out_channels_classifier = int(config['classifier']['conv_blocks'][-1]['layers'][-1][0])
+
+        # get the hidden layer dimension
+        hidden_dim = int(config['classifier']['fc_layers']['dim'])
+
+        # get the dropout rate
+        dropout_rate = float(config['classifier']['fc_layers']['dropout'])
+
+        fc1 = nn.Linear(out_channels_classifier, hidden_dim)
+        layers.append(fc1)
+        layers.append(nn.LeakyReLU(0.1, inplace=True))
+
+        layers.append(nn.Dropout(dropout_rate))
+
+        fc2 = nn.Linear(4096, self.grid_size**2 * ((5 * self.num_boxes) + self.num_classes))
+        layers.append(fc2)
+        layers.append(nn.Sigmoid())
+
+        return nn.Sequential(*layers)
