@@ -1,52 +1,56 @@
 batch_size: 64
 grid_size: 7
+num_boxes: 2
 num_classes: 20
-
-channels: 3
 
 momentum: 0.9
 weight_decay: 0.0005
 learning_rate: 0.001
 
-# convolutional blocks
-conv_blocks:
-  # DarkNet layers
-  - n_layers: 1
-    layers:
-      - [64, 7, 2, 1]
-  - n_layers: 1
-    layers:
-      - [192, 3, 1, 1]
-  - n_layers: 4
-    layers:
-      - [128, 1, 1, 1]
-      - [256, 3, 1, 1]
-      - [256, 1, 1, 1]
-      - [512, 3, 1, 1]
-  - n_layers: 10
-    layers:
-      - [256, 1, 1, 1]
-      - [512, 3, 1, 1]
-      - [256, 1, 1, 1]
-      - [512, 3, 1, 1]
-      - [256, 1, 1, 1]
-      - [512, 3, 1, 1]
-      - [256, 1, 1, 1]
-      - [512, 3, 1, 1]
-      - [512, 1, 1, 1]
-      - [1024, 3, 1, 1]
-  - n_layers: 5
-    layers:
-      - [512, 1, 1, 1]
-      - [1024, 3, 1, 1]
-      - [512, 1, 1, 1]
-      - [1024, 3, 1, 1]
-      - [1024, 3, 2, 1]
-  - n_layers: 2
-    layers:
-      - [1024, 3, 1, 1]
-      - [1024, 3, 2, 1]
+backbone:
+  in_channels: 3
+  # convolutional blocks
+  conv_blocks:
+    # DarkNet layers
+    - n_layers: 1
+      layers:
+        - [64, 7, 2, 1]
+    - n_layers: 1
+      layers:
+        - [192, 3, 1, 1]
+    - n_layers: 4
+      layers:
+        - [128, 1, 1, 1]
+        - [256, 3, 1, 1]
+        - [256, 1, 1, 1]
+        - [512, 3, 1, 1]
+    - n_layers: 10
+      layers:
+        - [256, 1, 1, 1]
+        - [512, 3, 1, 1]
+        - [256, 1, 1, 1]
+        - [512, 3, 1, 1]
+        - [256, 1, 1, 1]
+        - [512, 3, 1, 1]
+        - [256, 1, 1, 1]
+        - [512, 3, 1, 1]
+        - [512, 1, 1, 1]
+        - [1024, 3, 1, 1]
+    - n_layers: 5
+      layers:
+        - [512, 1, 1, 1]
+        - [1024, 3, 1, 1]
+        - [512, 1, 1, 1]
+        - [1024, 3, 1, 1]
+        - [1024, 3, 2, 1]
+    - n_layers: 2
+      layers:
+        - [1024, 3, 1, 1]
+        - [1024, 3, 2, 1]
+
+classifier:
   # final YOLO layers
+  conv_blocks:
   - n_layers: 1
     layers:
       - [1024, 3, 1, 1]
@@ -60,9 +64,9 @@ conv_blocks:
     layers:
       - [1024, 3, 1, 1]
 
-# fully-connected layers
-fc_layers:
-  - dim: 4096
-  - droupout: 0.5
-  # after this, activation, dropout, and another fc layer
-  # final fc dimension: S*S*(B*5+C)
+  # fully-connected layers
+  fc_layers:
+    dim: 4096
+    dropout: 0.5
+    # after this, activation, dropout, and another fc layer
+    # final fc dimension: S*S*(B*5+C)
