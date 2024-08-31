@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from models.darknet import DarkNet
 from typing import Any, List
-from utils.yolo import make_conv_bn_layer
+from yolo.utils import make_conv_bn_layer
 
 # TODO
 
