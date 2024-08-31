@@ -125,4 +125,109 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: torch.Tensor, grid_size
                     bbox[4] = grid_cell[5:].argmax()
 
     return fsoco_bboxes
+
+def compute_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Intersection over Union (IoU) of two sets of boxes.
+
+    Args:
+        boxes1 (torch.Tensor): Boxes in the format (x, y, h, w) shaped (batch_size, n_boxes, 4).
+        boxes2 (torch.Tensor): Boxes in the format (x, y, h, w) shaped (batch_size, n_boxes, 4).
+
+    Returns:
+        (torch.Tensor) IoU values shaped (batch_size, n_boxes, n_boxes).
+    """
+
+    # get the coordinates and dimensions of each box
+    b1_x1, b1_y1, b1_h, b1_w = boxes1[:, :, 0], boxes1[:, :, 1], boxes1[:, :, 2], boxes1[:, :, 3]
+    b2_x1, b2_y1, b2_h, b2_w = boxes2[:, :, 0], boxes2[:, :, 1], boxes2[:, :, 2], boxes2[:, :, 3]
+
+    # convert to corner coordinates
+    b1_x2, b1_y2 = b1_x1 + b1_w, b1_y1 + b1_h
+    b2_x2, b2_y2 = b2_x1 + b2_w, b2_y1 + b2_h
+
+    # get the intersection coordinates
+    inter_x1 = torch.max(b1_x1.unsqueeze(2), b2_x1.unsqueeze(1))
+    inter_y1 = torch.max(b1_y1.unsqueeze(2), b2_y1.unsqueeze(1))
+    inter_x2 = torch.min(b1_x2.unsqueeze(2), b2_x2.unsqueeze(1))
+    inter_y2 = torch.min(b1_y2.unsqueeze(2), b2_y2.unsqueeze(1))
+
+    # calculate the intersection area
+    inter_area = torch.clamp(inter_x2 - inter_x1, min=0) * torch.clamp(inter_y2 - inter_y1, min=0)
+    box1_area = b1_h.unsqueeze(2) * b1_w.unsqueeze(2)
+    box2_area = b2_h.unsqueeze(1) * b2_w.unsqueeze(1)
+
+    # calculate the union area - the small epsilon is added to avoid division by zero
+    union_area = box1_area + box2_area - inter_area + 1e-6
+
+    # calculate the IoU
+    iou = inter_area / union_area
+
+    return iou
     
+class YOLOv1Loss(nn.Module):
+    """
+    YOLOv1 loss function.
+    """
+
+    def __init__(self, lambda_coord: float = 5.0, lambda_noobj: float = 0.5, grid_size: int = 7, n_predictors: int = 2) -> None:
+        """
+        Initialize the YOLOv1 loss function.
+
+        Args:
+            lambda_coord (float): Weight of the bounding box coordinates loss.
+            lambda_noobj (float): Weight of the no object loss.
+            grid_size (int): Size of the grid in YOLO.
+            n_predictors (int): Number of predictors per grid cell.
+        """
+        super().__init__()
+
+        self.lambda_coord = lambda_coord
+        self.lambda_noobj = lambda_noobj
+        self.grid_size = grid_size
+        self.n_predictors = n_predictors
+
+    def forward(self, y_true: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the loss from the ground truth and predicted bounding boxes.
+
+        Args:
+            y_true (torch.Tensor): Ground truth bounding boxes shaped (batch_size, S, S, n_predictors * (5 + n_classes)) where S is the grid size.
+            y_pred (torch.Tensor): Predicted bounding boxes shaped (batch_size, S, S, n_predictors * (5 + n_classes)) where S is the grid size.
+
+        Returns:
+            (torch.Tensor) Loss value.
+        """
+
+        # get the predictions boxes and classes
+        pred_boxes = y_pred[:, :, :, :self.n_predictors * 5]
+        pred_classes = y_pred[:, :, :, self.n_predictors * 5:]
+
+        # get the ground truth boxes and classes
+        target_boxes = y_true[:, :, :, :self.n_predictors * 5]
+        target_classes = y_true[:, :, :, self.n_predictors * 5:]
+
+        # calculate the IoU between the predicted and target boxes
+        iou = compute_iou(pred_boxes[..., :4], target_boxes[..., :4])
+
+        # create masks
+        obj_mask = target_boxes[..., 4] > 0
+        noobj_mask = target_boxes[..., 4] == 0
+
+        # calculate the coordinate loss
+        coord_loss = self.lambda_coord * torch.sum(obj_mask * (torch.sum((pred_boxes - target_boxes)**2, dim=-1)))
+
+        # calculate the confidence loss
+        pred_confidence = pred_boxes[..., 4]
+        target_confidence = target_boxes[..., 4]
+        confidence_loss_obj = torch.sum(obj_mask * (pred_confidence - target_confidence)**2)
+        confidence_loss_noobj = torch.sum(noobj_mask * (pred_confidence - target_confidence)**2)
+        confidence_loss = confidence_loss_obj + self.lambda_noobj * confidence_loss_noobj
+
+        # calculate the class loss
+        class_loss = torch.sum(obj_mask * (pred_classes - target_classes)**2)
+
+        # calculate the total loss
+        loss = coord_loss + confidence_loss + class_loss
+
+        return loss
