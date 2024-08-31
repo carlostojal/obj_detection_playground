@@ -68,7 +68,7 @@ def fsoco_to_yolo_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
             # iterate the predictors
             for j in range(n_predictors):
                 # get the grid cell
-                grid_cell = grid[b, int(bbox_y_grid[b, i]), int(bbox_x_grid[b, i]), j * (5 + n_classes): (j + 1) * (5 + n_classes)]
+                grid_cell = grid[b, int(bbox_y_grid[b, i]), int(bbox_x_grid[b, i]), (j * 5) + n_classes: ((j + 1) * 5) + n_classes]
                 # set the bounding box
                 grid_cell[0] = bboxes[b, i, 0]
                 grid_cell[1] = bboxes[b, i, 1]
