@@ -8,13 +8,13 @@
             "name": "Train YOLOv1",
             "type": "debugpy",
             "request": "launch",
-            "program": "tools/train.py",
+            "program": "yolo/tools/train.py",
             "console": "integratedTerminal",
             "args": [
                 "--conf",
-                "configs/yolov1.yaml"
+                "yolo/configs/yolov1.yaml"
             ],
-            "cwd": "${workspaceFolder}/yolo"
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
