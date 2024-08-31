@@ -220,7 +220,7 @@ class YOLOv1Loss(nn.Module):
         # calculate the confidence loss
         pred_confidence = pred_boxes[..., 4]
         target_confidence = target_boxes[..., 4]
-        confidence_loss_obj = torch.sum(obj_mask * (pred_confidence - target_confidence)**2)
+        confidence_loss_obj = torch.sum(obj_mask * (pred_confidence - iou)**2)
         confidence_loss_noobj = torch.sum(noobj_mask * (pred_confidence - target_confidence)**2)
         confidence_loss = confidence_loss_obj + self.lambda_noobj * confidence_loss_noobj
 
