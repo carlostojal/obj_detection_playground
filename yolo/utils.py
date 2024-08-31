@@ -84,7 +84,7 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
     Convert bounding boxes from the YOLO format (xy relative to grid cell and hw relative to image dimensions 0-1) to the FSOCO format (xyhw relative to image 0-1).
 
     Args:
-        bboxes (torch.Tensor): Bounding boxes in the YOLO format shaped (batch_size, S, S, n_predictors * (5 + n_classes)) where S is the grid size.
+        bboxes (torch.Tensor): Bounding boxes in the YOLO format shaped (batch_size, S, S, (n_predictors * 5) + n_classes) where S is the grid size.
         img_dims (Tuple[int]): Image dimensions (height, width).
         grid_size (int): Size of the grid in YOLO.
         n_predictors (int): Number of predictors per grid cell.
@@ -112,7 +112,7 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
                 # iterate the predictors
                 for p in range(n_predictors):
                     # get the grid cell
-                    grid_cell = bboxes[b, gy, gx, p * (5 + n_classes): (p + 1) * (5 + n_classes)]
+                    grid_cell = bboxes[b, gy, gx, p * 5: (p + 1) * 5]
                     # get the bounding box
                     bbox = fsoco_bboxes[b, gy * S + gx * n_predictors + p]
                     # set the bounding box
@@ -120,7 +120,7 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
                     bbox[1] = (gy + grid_cell[1]) * cell_height[b]
                     bbox[2] = grid_cell[2] * cell_width[b]
                     bbox[3] = grid_cell[3] * cell_height[b]
-                    bbox[4] = grid_cell[5:].argmax()
+                    bbox[4] = grid_cell[p*5:].argmax()
 
     return fsoco_bboxes
 
@@ -203,9 +203,6 @@ class YOLOv1Loss(nn.Module):
         target_boxes = y_true[:, :, :, :self.n_predictors * 5]
         target_classes = y_true[:, :, :, self.n_predictors * 5:]
 
-        # calculate the IoU between the predicted and target boxes
-        iou = compute_iou(pred_boxes[..., :4], target_boxes[..., :4])
-
         # create masks
         obj_mask = target_boxes[..., 4] > 0
         noobj_mask = target_boxes[..., 4] == 0
@@ -216,7 +213,7 @@ class YOLOv1Loss(nn.Module):
         # calculate the confidence loss
         pred_confidence = pred_boxes[..., 4]
         target_confidence = target_boxes[..., 4]
-        confidence_loss_obj = torch.sum(obj_mask * (pred_confidence - iou)**2)
+        confidence_loss_obj = torch.sum(obj_mask * (pred_confidence - target_confidence)**2)
         confidence_loss_noobj = torch.sum(noobj_mask * (pred_confidence - target_confidence)**2)
         confidence_loss = confidence_loss_obj + self.lambda_noobj * confidence_loss_noobj
 
