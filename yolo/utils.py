@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 def make_conv_bn_layer(in_channels: int, out_channels: int, kernel_size: int, stride: int = 1, padding: int = 0, with_pool: bool = True) -> nn.Module:
     """
@@ -170,22 +170,20 @@ class YOLOv1Loss(nn.Module):
     YOLOv1 loss function.
     """
 
-    def __init__(self, lambda_coord: float = 5.0, lambda_noobj: float = 0.5, grid_size: int = 7, n_predictors: int = 2) -> None:
+    def __init__(self, conf: Any) -> None:
         """
         Initialize the YOLOv1 loss function.
 
         Args:
-            lambda_coord (float): Weight of the bounding box coordinates loss.
-            lambda_noobj (float): Weight of the no object loss.
-            grid_size (int): Size of the grid in YOLO.
-            n_predictors (int): Number of predictors per grid cell.
+            conf (Any): Configuration object as specified in the configs/yolov1.yaml file.
         """
+
         super().__init__()
 
-        self.lambda_coord = lambda_coord
-        self.lambda_noobj = lambda_noobj
-        self.grid_size = grid_size
-        self.n_predictors = n_predictors
+        self.lambda_coord = float(conf['lambda_coord']) 
+        self.lambda_noobj = float(conf['lambda_noobj'])
+        self.grid_size = int(conf['grid_size'])
+        self.n_predictors = int(conf['n_predictors'])
 
     def forward(self, y_true: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
         """
