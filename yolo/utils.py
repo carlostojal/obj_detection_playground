@@ -79,3 +79,50 @@ def fsoco_to_yolo_bboxes(bboxes: torch.Tensor, img_dims: torch.Tensor, grid_size
                 grid_cell[5 + int(bboxes[b, i, 4])] = 1
 
     return grid
+
+def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: torch.Tensor, grid_size: int = 7, n_predictors: int = 2, n_classes: int = 5) -> torch.Tensor:
+    """
+    Convert bounding boxes from the YOLO format (xy relative to grid cell and hw relative to image dimensions 0-1) to the FSOCO format (xyhw relative to image 0-1).
+
+    Args:
+        bboxes (torch.Tensor): Bounding boxes in the YOLO format shaped (batch_size, S, S, n_predictors * (5 + n_classes)) where S is the grid size.
+        img_dims (torch.Tensor): Image dimensions shaped (batch_size, 2) where the last dimension is [height, width].
+        grid_size (int): Size of the grid in YOLO.
+        n_predictors (int): Number of predictors per grid cell.
+        n_classes (int): Number of classes in the dataset.
+
+    Returns:
+        (torch.Tensor) Bounding boxes in the FSOCO format shaped (batch_size, n_boxes, 5) where the last dimension is [x, y, h, w, class].
+    """
+
+    batch_size = bboxes.size(0)
+    S = grid_size
+    n_bboxes = S**2 * n_predictors
+
+    # calculate the grid cell size
+    cell_height = img_dims[:, 0] / S
+    cell_width = img_dims[:, 1] / S
+
+    # create the bounding boxes tensor
+    fsoco_bboxes = torch.zeros((batch_size, n_bboxes, 5))
+
+    # iterate the batches
+    for b in range(batch_size):
+        # iterate the grid cells
+        for gy in range(S):
+            for gx in range(S):
+                # iterate the predictors
+                for p in range(n_predictors):
+                    # get the grid cell
+                    grid_cell = bboxes[b, gy, gx, p * (5 + n_classes): (p + 1) * (5 + n_classes)]
+                    # get the bounding box
+                    bbox = fsoco_bboxes[b, gy * S + gx * n_predictors + p]
+                    # set the bounding box
+                    bbox[0] = (gx + grid_cell[0]) * cell_width[b]
+                    bbox[1] = (gy + grid_cell[1]) * cell_height[b]
+                    bbox[2] = grid_cell[2] * cell_width[b]
+                    bbox[3] = grid_cell[3] * cell_height[b]
+                    bbox[4] = grid_cell[5:].argmax()
+
+    return fsoco_bboxes
+    
