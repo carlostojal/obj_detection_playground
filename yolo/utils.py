@@ -36,7 +36,7 @@ def fsoco_to_yolo_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
         n_classes (int): Number of classes in the dataset.
 
     Returns:
-        (torch.Tensor) Bounding boxes in the YOLO format shaped (batch_size, S, S, n_predictors * (5 + n_classes)) where S is the grid size.
+        (torch.Tensor) Bounding boxes in the YOLO format shaped (batch_size, S, S, (n_predictors * 5) + n_classes) where S is the grid size.
     """
 
     batch_size = bboxes.size(0)
@@ -47,7 +47,7 @@ def fsoco_to_yolo_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
     cell_height, cell_width = img_dims[0] / S, img_dims[1] / S
 
     # create the grid
-    grid = torch.zeros((batch_size, S, S, n_predictors * (5 + n_classes)), device=bboxes.device)
+    grid = torch.zeros((batch_size, S, S, (n_predictors * 5) + n_classes), device=bboxes.device)
 
     # convert the bounding box xy coordinates to center coordinates
     bboxes[:, :, 0] = bboxes[:, :, 0] + bboxes[:, :, 3] / 2
