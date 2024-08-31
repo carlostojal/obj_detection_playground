@@ -5,8 +5,9 @@ import os
 import sys
 import yaml
 sys.path.append(".")
-from models.yolov1 import YOLOv1
-import time
+from yolo.models.yolov1 import YOLOv1
+from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne
+from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes
 
 if __name__ == "__main__":
 
@@ -16,6 +17,9 @@ if __name__ == "__main__":
     print("Parsing command line arguments...", end=" ")
     parser = ArgumentParser()
     parser.add_argument("--conf", "-c", help="Path to YOLO configuration file", type=str, required=True)
+    parser.add_argument("--num_epochs", "-e", help="Number of epochs to train", type=int, default=100)
+    parser.add_argument("--img_width", "-iw", help="Width of the input image", type=int, default=640)
+    parser.add_argument("--img_height", "-ih", help="Height of the input image", type=int, default=480)
     args = parser.parse_args()
     print("Done.")
 
@@ -48,8 +52,23 @@ if __name__ == "__main__":
     print("Building the model...", end=" ")
     model = YOLOv1(conf)
     print("Done.")
-
     print(model)
+
+    # create the datasets
+    train_set = FSOCO_FiftyOne("train")
+    val_set = FSOCO_FiftyOne("val")
+    test_set = FSOCO_FiftyOne("test")
+
+    # create the dataloaders
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False)
+
+    # create the criterion
+    criterion = YOLOv1Loss(conf)
+
+    # create the optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=float(conf['learning_rate']))
 
     # verify the available devices
     device = torch.device("cpu")
@@ -59,20 +78,41 @@ if __name__ == "__main__":
 
     # move the model to the device
     model = model.to(device)
-    model.eval()
 
-    # make a dummy forward pass
-    print("Making a dummy forward pass...", end=" ")
-    warmup_passes = 50
-    for i in range(warmup_passes):
-        x = torch.randn(1, 3, 448, 448).to(device)
-        start_t = time.time()
-        bboxes = model(x)
-        end_t = time.time()
+    # set the model to training mode
+    model.train()
 
-        if i == warmup_passes - 1:
-            print(f"Done in {end_t-start_t}s.")
+    # training loop
+    for epoch in range(int(args.num_epochs)):
 
-    print(bboxes.shape)
+        # iterate the training set
+        for i, (imgs, bboxes) in enumerate(train_loader):
+
+            # move the data to the device
+            imgs = imgs.to(device)
+            bboxes = bboxes.to(device)
+
+            # convert the bounding boxes to the YOLO format
+            bboxes = fsoco_to_yolo_bboxes(bboxes, (int(args.img_height), int(args.img_width)), 
+                                          grid_size=int(conf['grid_size']), n_predictors=int(conf['n_predictors']),
+                                          n_classes=int(conf['n_classes']))
+
+            # zero the gradients
+            optimizer.zero_grad()
+
+            # forward pass
+            preds = model(imgs)
+
+            # calculate the loss
+            loss = criterion(preds, bboxes)
+
+            # backward pass
+            loss.backward()
+
+            # update the weights
+            optimizer.step()
+
+            # print the loss
+            print(f"Epoch: {epoch+1}, Batch: {i}, Loss: {loss.item()}")
 
     sys.exit(0)
