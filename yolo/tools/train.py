@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 import torch
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
+from torch.optim.lr_scheduler import ExponentialLR
+from torch.utils.tensorboard import SummaryWriter
 import fiftyone as fo
 from argparse import ArgumentParser
 import os
@@ -93,6 +94,9 @@ if __name__ == "__main__":
     # set the model to training mode
     model.train()
 
+    # create the tensorboard writer
+    writer = SummaryWriter()
+
     # training loop
     for epoch in range(int(args.num_epochs)):
 
@@ -130,6 +134,9 @@ if __name__ == "__main__":
 
             # print the loss
             print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+        # log the loss to tensorboard
+        writer.add_scalar("Loss/train", loss.item(), epoch)
+        writer.add_scalar("Loss/train_mean", loss_mean, epoch)
         print()
 
         # iterate the validation set
@@ -157,6 +164,9 @@ if __name__ == "__main__":
 
             # print the loss
             print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+        # log the loss to tensorboard
+        writer.add_scalar("Loss/val", loss.item(), epoch)
+        writer.add_scalar("Loss/val_mean", loss_mean, epoch)
         print()
 
 
@@ -211,5 +221,12 @@ if __name__ == "__main__":
 
         # print the loss
         print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+    # log the loss to tensorboard
+    writer.add_scalar("Loss/test", loss.item(), epoch)
+    writer.add_scalar("Loss/test_mean", loss_mean, epoch)
+    print()
+
+    writer.flush() # make sure everything is written to disk
+    writer.close() # close the writer
 
     sys.exit(0)
