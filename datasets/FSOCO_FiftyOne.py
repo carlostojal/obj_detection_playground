@@ -57,7 +57,7 @@ class FSOCO_FiftyOne(Dataset):
 
         return len(self.samples)
     
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         """
         Get the sample at the index.
 
@@ -70,7 +70,8 @@ class FSOCO_FiftyOne(Dataset):
         """
 
         # get the sample ID
-        sample = self.samples[self.sample_ids[idx]]
+        id = self.sample_ids[idx]
+        sample = self.samples[id]
 
         # get the image
         img = Image.open(sample.filepath)
@@ -90,4 +91,4 @@ class FSOCO_FiftyOne(Dataset):
             bboxes[cur_box, :4] = torch.tensor(detection.bounding_box)
             bboxes[cur_box, 4] = classes_dict[detection.label]
 
-        return img, bboxes
+        return id, img, bboxes
