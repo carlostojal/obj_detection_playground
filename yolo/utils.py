@@ -75,7 +75,10 @@ def fsoco_to_yolo_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
                 grid_cell[2] = bboxes[b, i, 2]
                 grid_cell[3] = bboxes[b, i, 3]
                 grid_cell[4] = 1
-                grid_cell[5 + int(bboxes[b, i, 4])] = 1
+                # get the grid probabilities
+                grid_prob = grid[b, int(bbox_y_grid[b, i]), int(bbox_x_grid[b, i]), n_predictors*5:]
+                # set the class probability
+                grid_prob[bboxes[b, i, 4].long()] = 1 
 
     return grid
 
@@ -205,7 +208,7 @@ class YOLOv1Loss(nn.Module):
 
         # create masks
         obj_mask = target_boxes[..., 4] > 0
-        noobj_mask = target_boxes[..., 4] == 0
+        noobj_mask = target_boxes[..., 4] <= 0 + 1e-6 # small epsilon to allow comparison with zero
 
         # calculate the coordinate loss
         coord_loss = self.lambda_coord * torch.sum(obj_mask * (torch.sum((pred_boxes - target_boxes)**2, dim=-1)))
@@ -218,7 +221,7 @@ class YOLOv1Loss(nn.Module):
         confidence_loss = confidence_loss_obj + self.lambda_noobj * confidence_loss_noobj
 
         # calculate the class loss
-        class_loss = torch.sum(obj_mask * (pred_classes - target_classes)**2)
+        class_loss = torch.sum(obj_mask.unsqueeze(-1) * (pred_classes - target_classes)**2)
 
         # calculate the total loss
         loss = coord_loss + confidence_loss + class_loss
