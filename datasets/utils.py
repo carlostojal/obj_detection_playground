@@ -1,7 +1,7 @@
 import torch
 from typing import Tuple
 
-def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, int]) -> Tuple[torch.Tensor, torch.Tensor]:
+def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, int]) -> Tuple[torch.Tensor, torch.Tensor, Tuple[int, int]]:
     """
     Pad the image and bounding boxes to the target size.
 
@@ -13,6 +13,7 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     Returns:
         (torch.Tensor) Padded image tensor shaped (num_channels, target_height, target_width).
         (torch.Tensor) Padded bounding boxes tensor shaped (max_boxes, 5) where the last dimension is [x, y, h, w, class] normalized to image size.
+        (Tuple[int, int]) Padding applied to the image (height, width) (total in both sides in pixels).
     """
     
     # resize the image
@@ -40,7 +41,7 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     bboxes[:, 2] *= new_width / width
     bboxes[:, 3] *= new_height / height
 
-    return img, bboxes
+    return img, bboxes, (pad_height, pad_width)
 
 def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int, int], padding: Tuple[int, int]) -> torch.Tensor:
     """

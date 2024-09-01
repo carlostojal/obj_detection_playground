@@ -89,6 +89,6 @@ class FSOCO_FiftyOne(Dataset):
             bboxes[cur_box, 4] = classes_dict[detection.label]
 
         # pad the image and bounding boxes
-        img, bboxes = pad_image(img, bboxes, (self.img_height, self.img_width))
+        img, bboxes, padding_px = pad_image(img, bboxes, (self.img_height, self.img_width))
         
-        return id, img, bboxes
+        return id, img, bboxes, padding_px
