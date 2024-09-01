@@ -18,7 +18,7 @@ class FSOCO_FiftyOne(Dataset):
     FSOCO dataset loaded from FiftyOne.
     """
 
-    def __init__(self, split: str = "train", fiftyone_name: str = "fsoco",
+    def __init__(self, split: str, fiftyone_dataset: fo.Dataset,
                  img_width: int = 640, img_height: int = 480,
                  max_boxes: int = 30) -> None:
         """
@@ -33,13 +33,10 @@ class FSOCO_FiftyOne(Dataset):
         """
 
         self.split = split
-        self.fiftyone_name = fiftyone_name
+        self.dataset = fiftyone_dataset
         self.img_width = img_width
         self.img_height = img_height
         self.max_boxes = max_boxes
-
-        # load the FiftyOne dataset
-        self.dataset = fo.load_dataset(self.fiftyone_name)
 
         # get a view of the samples of the split
         self.samples = self.dataset.match_tags(self.split)
