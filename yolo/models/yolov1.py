@@ -1,10 +1,8 @@
 import torch
 from torch import nn
-from models.darknet import DarkNet
+from yolo.models.darknet import DarkNet
 from typing import Any, List
-from utils.yolo import make_conv_bn_layer
-
-# TODO
+from yolo.utils import make_conv_bn_layer
 
 class YOLOv1(nn.Module):
     """
@@ -20,8 +18,8 @@ class YOLOv1(nn.Module):
         """
         super().__init__()
         self.grid_size = int(config['grid_size'])
-        self.num_boxes = int(config['num_boxes'])
-        self.num_classes = int(config['num_classes'])
+        self.num_boxes = int(config['n_predictors'])
+        self.num_classes = int(config['n_classes'])
 
         # initialize the backbone from the configuration
         self.backbone = DarkNet(config['backbone'])

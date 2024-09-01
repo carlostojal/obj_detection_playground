@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from typing import List, Any
-from utils.yolo import make_conv_bn_layer
+from yolo.utils import make_conv_bn_layer
 
 class DarkNet(nn.Module):
     def __init__(self, config: Any):

@@ -1,7 +1,12 @@
-batch_size: 64
+batch_size: 2
+
 grid_size: 7
-num_boxes: 2
-num_classes: 20
+n_predictors: 2
+
+lambda_coord: 5.0
+lambda_noobj: 0.5
+
+n_classes: 20
 
 momentum: 0.9
 weight_decay: 0.0005
