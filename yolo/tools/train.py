@@ -70,9 +70,9 @@ if __name__ == "__main__":
     test_set = FSOCO_FiftyOne("test", fiftyone_dataset=dataset)
 
     # create the dataloaders
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=4)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=1)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
 
     # create the criterion
     criterion = YOLOv1Loss(conf)
