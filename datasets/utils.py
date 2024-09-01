@@ -1,5 +1,6 @@
 import torch
 from typing import Tuple
+from math import floor
 
 def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, int]) -> Tuple[torch.Tensor, torch.Tensor, Tuple[int, int]]:
     """
@@ -33,7 +34,12 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     # pad the image
     pad_width = target_size[1] - new_width
     pad_height = target_size[0] - new_height
-    img = torch.nn.functional.pad(img.unsqueeze(0), (int(pad_width/2), int(pad_height/2), int(pad_width/2), int(pad_height/2)), mode='constant', value=0).squeeze(0)
+    img = torch.nn.functional.pad(img.unsqueeze(0), (floor(pad_width/2), floor(pad_width/2), floor(pad_height/2), floor(pad_height/2)), mode='constant', value=0).squeeze(0)
+    # add rows or columns if the padding is not even
+    if pad_width % 2 != 0:
+        img = torch.cat((img, torch.zeros(img.size(0), img.size(1), 1)), dim=2)
+    if pad_height % 2 != 0:
+        img = torch.cat((img, torch.zeros(img.size(0), 1, img.size(2))), dim=1)
 
     # update the bounding boxes
     bboxes[:, 0] += (pad_width / 2) / new_width
