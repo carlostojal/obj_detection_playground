@@ -6,7 +6,13 @@ n_predictors: 2
 lambda_coord: 5.0
 lambda_noobj: 0.5
 
-n_classes: 20
+n_classes: 5
+classes:
+  - 'yellow_cone'
+  - 'blue_cone'
+  - 'orange_cone'
+  - 'large_orange_cone'
+  - 'unknown_cone'
 
 momentum: 0.9
 weight_decay: 0.0005
