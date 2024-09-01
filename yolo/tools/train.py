@@ -5,6 +5,7 @@ import fiftyone as fo
 from argparse import ArgumentParser
 import os
 import sys
+import datetime
 import yaml
 from typing import List
 sys.path.append(".")
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--img_width", "-iw", help="Width of the input image", type=int, default=640)
     parser.add_argument("--img_height", "-ih", help="Height of the input image", type=int, default=480)
     parser.add_argument("--dataset_name", "-dn", help="Name of the dataset to use", type=str, default="fsoco")
+    parser.add_argument("--weights_path", "-o", help="Path to save the trained weights", type=str, default="output")
 
     args = parser.parse_args()
     print("Done.")
@@ -156,6 +158,13 @@ if __name__ == "__main__":
             # print the loss
             print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
         print()
+
+
+    # save the model
+    if not os.path.exists(args.weights_path):
+        time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.makedirs(args.weights_path)
+        torch.save(model.state_dict(), os.path.join(args.weights_path, f"{time}_yolov1.pth"))
     
     # iterate the test set
     loss_sum = 0
