@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import fiftyone as fo
 from torchvision.transforms import transforms
-from utils import pad_image
+from datasets.utils import pad_image
 from typing import Tuple
 
 classes_dict = {
