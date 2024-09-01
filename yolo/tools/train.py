@@ -8,6 +8,7 @@ sys.path.append(".")
 from yolo.models.yolov1 import YOLOv1
 from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne
 from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes
+from torch.optim.lr_scheduler import StepLR, ExponentialLR
 
 if __name__ == "__main__":
 
@@ -68,7 +69,10 @@ if __name__ == "__main__":
     criterion = YOLOv1Loss(conf)
 
     # create the optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=float(conf['learning_rate']))
+    optimizer = torch.optim.SGD(model.parameters(), lr=float(conf['learning_rate']), momentum=float(conf['momentum']), weight_decay=float(conf['weight_decay']))
+
+    # create the scheduler
+    scheduler = ExponentialLR(optimizer, gamma=float(conf['lr_decay']))
 
     # verify the available devices
     device = torch.device("cpu")
@@ -113,6 +117,6 @@ if __name__ == "__main__":
             optimizer.step()
 
             # print the loss
-            print(f"Epoch: {epoch+1}, Batch: {i}, Loss: {loss.item()}")
+            print(f"Epoch: {epoch+1}, Batch: {i}, Loss: {loss.item()}", end="\r")
 
     sys.exit(0)
