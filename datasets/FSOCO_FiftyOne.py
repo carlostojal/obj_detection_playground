@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import fiftyone as fo
 from torchvision.transforms import transforms
+from yolo.utils import pad_image
 from typing import Tuple
 
 classes_dict = {
@@ -73,25 +74,7 @@ class FSOCO_FiftyOne(Dataset):
         # get the image
         img = Image.open(sample.filepath)
         img = img.convert("RGB")
-        width = img.width
-        height = img.height
-        # resize the image to fit in the target size
-        aspect_ratio = width / height
-        if aspect_ratio > 1:
-            width_ratio = width / self.img_width
-            new_width = self.img_width
-            new_height = int(height / width_ratio)
-        else:
-            height_ratio = height / self.img_height
-            new_height = self.img_height
-            new_width = int(width / height_ratio)
-        img = img.resize((new_width, new_height))
 
-        # pad the image
-        pad_width = self.img_width - new_width
-        pad_height = self.img_height - new_height
-        img = transforms.Pad((int(pad_width/2), int(pad_height/2), int(pad_width/2), int(pad_height/2)))(img)
-        
         # convert the image to tensor
         transform = transforms.ToTensor()
         img = transform(img)
@@ -104,11 +87,8 @@ class FSOCO_FiftyOne(Dataset):
         for detection in sample['ground_truth']['detections']:
             bboxes[cur_box, :4] = torch.tensor(detection.bounding_box)
             bboxes[cur_box, 4] = classes_dict[detection.label]
-        
-        # convert the bounding boxes coordinates and dimensions to the new ratio
-        bboxes[:, 0] += pad_width / 2
-        bboxes[:, 1] += pad_height / 2
-        bboxes[:, 2] *= new_width / width
-        bboxes[:, 3] *= new_height / height
 
+        # pad the image and bounding boxes
+        img, bboxes = pad_image(img, bboxes, (self.img_height, self.img_width))
+        
         return id, img, bboxes
