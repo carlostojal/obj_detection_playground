@@ -1,14 +1,18 @@
 #! /usr/bin/python3
 import torch
+from torch.optim.lr_scheduler import ExponentialLR
+from torch.utils.tensorboard import SummaryWriter
+import fiftyone as fo
 from argparse import ArgumentParser
 import os
 import sys
+import datetime
 import yaml
+from typing import List
 sys.path.append(".")
 from yolo.models.yolov1 import YOLOv1
 from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne
-from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes
-from torch.optim.lr_scheduler import StepLR, ExponentialLR
+from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes, yolo_to_fsoco_bboxes
 
 if __name__ == "__main__":
 
@@ -18,9 +22,12 @@ if __name__ == "__main__":
     print("Parsing command line arguments...", end=" ")
     parser = ArgumentParser()
     parser.add_argument("--conf", "-c", help="Path to YOLO configuration file", type=str, required=True)
-    parser.add_argument("--num_epochs", "-e", help="Number of epochs to train", type=int, default=100)
+    parser.add_argument("--num_epochs", "-e", help="Number of epochs to train", type=int, default=3)
     parser.add_argument("--img_width", "-iw", help="Width of the input image", type=int, default=640)
     parser.add_argument("--img_height", "-ih", help="Height of the input image", type=int, default=480)
+    parser.add_argument("--dataset_name", "-dn", help="Name of the dataset to use", type=str, default="fsoco")
+    parser.add_argument("--weights_path", "-o", help="Path to save the trained weights", type=str, default="output")
+
     args = parser.parse_args()
     print("Done.")
 
@@ -56,14 +63,15 @@ if __name__ == "__main__":
     print(model)
 
     # create the datasets
-    train_set = FSOCO_FiftyOne("train")
-    val_set = FSOCO_FiftyOne("val")
-    test_set = FSOCO_FiftyOne("test")
+    dataset = fo.load_dataset(args.dataset_name)
+    train_set = FSOCO_FiftyOne("train", fiftyone_dataset=dataset)
+    val_set = FSOCO_FiftyOne("val", fiftyone_dataset=dataset)
+    test_set = FSOCO_FiftyOne("test", fiftyone_dataset=dataset)
 
     # create the dataloaders
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=4)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
 
     # create the criterion
     criterion = YOLOv1Loss(conf)
@@ -86,11 +94,15 @@ if __name__ == "__main__":
     # set the model to training mode
     model.train()
 
+    # create the tensorboard writer
+    writer = SummaryWriter()
+
     # training loop
     for epoch in range(int(args.num_epochs)):
 
         # iterate the training set
-        for i, (imgs, bboxes) in enumerate(train_loader):
+        loss_sum = 0.0
+        for i, (id, imgs, bboxes) in enumerate(train_loader):
 
             # move the data to the device
             imgs = imgs.to(device)
@@ -116,7 +128,105 @@ if __name__ == "__main__":
             # update the weights
             optimizer.step()
 
+            # increment the loss sum
+            loss_sum += loss.item()
+            loss_mean = loss_sum / (i + 1)
+
             # print the loss
-            print(f"Epoch: {epoch+1}, Batch: {i}, Loss: {loss.item()}", end="\r")
+            print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+        # log the loss to tensorboard
+        writer.add_scalar("Loss/train", loss.item(), epoch)
+        writer.add_scalar("Loss/train_mean", loss_mean, epoch)
+        print()
+
+        # iterate the validation set
+        loss_sum = 0
+        for i, (id, imgs, bboxes) in enumerate(val_loader):
+
+            # move the data to the device
+            imgs = imgs.to(device)
+            bboxes = bboxes.to(device)
+
+            # convert the bounding boxes to the YOLO format
+            bboxes = fsoco_to_yolo_bboxes(bboxes, (int(args.img_height), int(args.img_width)), 
+                                          grid_size=int(conf['grid_size']), n_predictors=int(conf['n_predictors']),
+                                          n_classes=int(conf['n_classes']))
+
+            # forward pass
+            preds = model(imgs)
+
+            # calculate the loss
+            loss = criterion(preds, bboxes)
+
+            # increment the loss sum
+            loss_sum += loss.item()
+            loss_mean = loss_sum / (i + 1)
+
+            # print the loss
+            print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+        # log the loss to tensorboard
+        writer.add_scalar("Loss/val", loss.item(), epoch)
+        writer.add_scalar("Loss/val_mean", loss_mean, epoch)
+        print()
+
+
+    # save the model
+    if not os.path.exists(args.weights_path):
+        time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        os.makedirs(args.weights_path)
+        torch.save(model.state_dict(), os.path.join(args.weights_path, f"{time}_yolov1.pth"))
+    
+    # iterate the test set
+    loss_sum = 0
+    for i, (id, imgs, bboxes) in enumerate(test_loader):
+
+        # move the data to the device
+        imgs = imgs.to(device)
+        bboxes = bboxes.to(device)
+
+        # convert the bounding boxes to the YOLO format
+        bboxes = fsoco_to_yolo_bboxes(bboxes, (int(args.img_height), int(args.img_width)), 
+                                      grid_size=int(conf['grid_size']), n_predictors=int(conf['n_predictors']),
+                                      n_classes=int(conf['n_classes']))
+
+        # forward pass
+        preds = model(imgs)
+
+        # calculate the loss
+        loss = criterion(preds, bboxes)
+
+        # convert the predictions to the FSOCO format
+        bboxes_fsoco = yolo_to_fsoco_bboxes(preds, (int(args.img_height), int(args.img_width)), 
+                                      grid_size=int(conf['grid_size']), n_predictors=int(conf['n_predictors']),
+                                      n_classes=int(conf['n_classes']))
+        
+        # create the predictions
+        preds_fifty: List[fo.Detection] = []
+        for j in range(preds.size(0)):
+            for k in range(preds.size(1)):
+                # get the bounding box
+                bbox = bboxes_fsoco[j, k]
+                # create the detection
+                detection = fo.Detection(label=conf['classes'][torch.argmax(bbox[5:])],
+                                          bounding_box=bbox[:4].tolist(),
+                                          confidence=bbox[4].item())
+                # add the detection to the list
+                preds_fifty.append(detection)
+        dataset[id]["predictions"] = fo.Detections(detections=preds_fifty)
+        dataset[id].save()
+
+        # increment the loss sum
+        loss_sum += loss.item()
+        loss_mean = loss_sum / (i + 1)
+
+        # print the loss
+        print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+    # log the loss to tensorboard
+    writer.add_scalar("Loss/test", loss.item(), epoch)
+    writer.add_scalar("Loss/test_mean", loss_mean, epoch)
+    print()
+
+    writer.flush() # make sure everything is written to disk
+    writer.close() # close the writer
 
     sys.exit(0)
