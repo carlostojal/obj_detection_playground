@@ -73,7 +73,22 @@ class FSOCO_FiftyOne(Dataset):
         # get the image
         img = Image.open(sample.filepath)
         img = img.convert("RGB")
-        img = img.resize((self.img_width, self.img_height))
+        # resize the image to fit in the target size
+        aspect_ratio = img.width / img.height
+        if aspect_ratio > 1:
+            width_ratio = img.width / self.img_width
+            new_width = self.img_width
+            new_height = int(img.height / width_ratio)
+        else:
+            height_ratio = img.height / self.img_height
+            new_height = self.img_height
+            new_width = int(img.width / height_ratio)
+        img = img.resize((new_width, new_height))
+
+        # pad the image
+        pad_width = self.img_width - new_width
+        pad_height = self.img_height - new_height
+        img = transforms.Pad((pad_width/2, pad_height/2, pad_width/2, pad_height/2))(img)
         
         # convert the image to tensor
         transform = transforms.ToTensor()
