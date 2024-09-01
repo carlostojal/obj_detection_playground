@@ -55,7 +55,7 @@ class FSOCO_FiftyOne(Dataset):
 
         return len(self.samples)
     
-    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Get the sample at the index.
 
@@ -90,5 +90,7 @@ class FSOCO_FiftyOne(Dataset):
 
         # pad the image and bounding boxes
         img, bboxes, padding_px = pad_image(img, bboxes, (self.img_height, self.img_width))
+
+        padding_px = torch.tensor(padding_px)
         
         return id, img, bboxes, padding_px
