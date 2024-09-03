@@ -66,40 +66,41 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
 
     return img, bboxes, (pad_height, pad_width)
 
-def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int, int], padding: Tuple[int, int]) -> torch.Tensor:
+def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: torch.Tensor, padding: torch.Tensor) -> torch.Tensor:
     """
     Unpad the bounding boxes to the original image size.
 
     Args:
-        bboxes (torch.Tensor): Bounding boxes tensor shaped (max_boxes, 5) where the last dimension is [x, y, h, w, class] normalized to padded image size.
-        padded_img_dims (Tuple[int, int]): Padded image dimensions (height, width).
-        padding (Tuple[int, int]): Padding applied to the image (height, width) (total in both sides in pixels, in the resized image).
+        bboxes (torch.Tensor): Bounding boxes tensor shaped (batch_size, max_boxes, 5) where the last dimension is [x, y, h, w, class] normalized to padded image size.
+        padded_img_dims (torch.Tensor): Padded image dimensions (batch_size, 2).
+        padding (torch.Tensor): Padding applied to the image (batch_size, 2) (total in both sides in pixels, in the resized image).
 
     Returns:
-        (torch.Tensor) Unpadded bounding boxes tensor shaped (max_boxes, 5) where the last dimension is [x, y, h, w, class].
+        (torch.Tensor) Unpadded bounding boxes tensor shaped (batch_size, max_boxes, 5) where the last dimension is [x, y, h, w, class].
     """
     
     # get the image dimensions
-    height, width = padded_img_dims
+    height = padded_img_dims[:, 0]
+    width = padded_img_dims[:, 1]
 
     # get the image dimensions without padding
-    new_width = width - padding[1]
-    new_height = height - padding[0]
+    new_width = width - padding[:, 1]
+    new_height = height - padding[:, 0]
 
     # convert to pixel coordinates
-    bboxes[:, 0] *= width
-    bboxes[:, 1] *= height
-    bboxes[:, 2] *= height
-    bboxes[:, 3] *= width
+    bboxes[..., 0] *= width
+    bboxes[..., 1] *= height
+    bboxes[..., 2] *= height
+    bboxes[..., 3] *= width
 
     # remove the padding from the bounding box coordinates
-    bboxes[:, 0] -= padding[1] / 2
-    bboxes[:, 1] -= padding[0] / 2
+    bboxes[..., 0] -= padding[:, 1] / 2
+    bboxes[..., 1] -= padding[:, 0] / 2
 
     # convert to normalized values in the unpadded image
-    bboxes[:, 0] /= new_width
-    bboxes[:, 1] /= new_height
-    bboxes[:, 2] /= new_height
-    bboxes[:, 3] /= new_width
+    bboxes[..., 0] /= new_width
+    bboxes[..., 1] /= new_height
+    bboxes[..., 2] /= new_height
+    bboxes[..., 3] /= new_width
 
     return bboxes
