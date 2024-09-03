@@ -41,17 +41,11 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     if pad_height % 2 != 0:
         img = torch.cat((img, torch.zeros(img.size(0), 1, img.size(2))), dim=1)
 
-    # convert the bounding boxes to pixel values in the original values
-    bboxes[:, 0] *= width
-    bboxes[:, 1] *= height 
-    bboxes[:, 2] *= height
-    bboxes[:, 3] *= width
-
-    # normalize the values in the padded image
-    bboxes[:, 0] /= new_width
-    bboxes[:, 1] /= new_height
-    bboxes[:, 2] /= new_height
-    bboxes[:, 3] /= new_width
+    # convert the bounding boxes
+    bboxes[:, 0] *= width / new_width
+    bboxes[:, 1] *= height / new_height
+    bboxes[:, 2] *= height / new_height
+    bboxes[:, 3] *= width / new_width
 
     return img, bboxes, (pad_height, pad_width)
 
