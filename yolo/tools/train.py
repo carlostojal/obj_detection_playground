@@ -98,6 +98,7 @@ if __name__ == "__main__":
     # create the tensorboard writer
     writer = SummaryWriter()
 
+    """
     # training loop
     for epoch in range(int(args.num_epochs)):
 
@@ -176,6 +177,8 @@ if __name__ == "__main__":
         time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         os.makedirs(args.weights_path)
         torch.save(model.state_dict(), os.path.join(args.weights_path, f"{time}_yolov1.pth"))
+
+    """
     
     # iterate the test set
     loss_sum = 0
@@ -224,10 +227,10 @@ if __name__ == "__main__":
         loss_mean = loss_sum / (i + 1)
 
         # print the loss
-        print(f"Epoch: {epoch+1}, Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
+        print(f"Test. Batch: {i}, loss: {loss.item()}, loss_mean: {loss_mean}", end="\r")
     # log the loss to tensorboard
-    writer.add_scalar("Loss/test", loss.item(), epoch)
-    writer.add_scalar("Loss/test_mean", loss_mean, epoch)
+    writer.add_scalar("Loss/test", loss.item(), 0)
+    writer.add_scalar("Loss/test_mean", loss_mean, 0)
     print()
 
     writer.flush() # make sure everything is written to disk

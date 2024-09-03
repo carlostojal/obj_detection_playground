@@ -34,12 +34,14 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     # pad the image
     pad_width = target_size[1] - new_width
     pad_height = target_size[0] - new_height
+    pad_width_sym = pad_width / 2
+    pad_height_sym = pad_height / 2
+    img = torch.nn.functional.pad(img, (int(pad_width_sym), int(pad_width_sym), int(pad_height_sym), int(pad_height_sym)), mode='constant', value=0)
     # add rows or columns if the padding is not even
     if pad_width % 2 != 0:
-        pad_width += 1
+        img = torch.nn.functional.pad(img, (0, 1), mode='constant', value=0) # pad on right
     if pad_height % 2 != 0:
-        pad_height += 1
-    img = torch.nn.functional.pad(img, (int(pad_width/2), int(pad_width/2), int(pad_height/2), int(pad_height/2)), mode='constant', value=0).squeeze(0)
+        img = torch.nn.functional.pad(img, (0, 0, 0, 1), mode='constant', value=0) # pad on bottom
 
     # the new_width, new_height par are the unpadded resized image dimensions
     # calculate the new padded dimensions

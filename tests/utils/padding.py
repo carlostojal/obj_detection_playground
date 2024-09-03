@@ -11,7 +11,7 @@ class TestPadding(unittest.TestCase):
         bboxes = torch.tensor([[0.1, 0.1, 0.1, 0.1, 0], [0.2, 0.2, 0.2, 0.2, 1]])
         target_size = (480, 640)
         padded_img, padded_bboxes, padding = pad_image(img, bboxes, target_size)
-        self.assertEqual(padded_img.size(), (3, 480, 640))
+        self.assertEqual(padded_img.size(), (1, 3, 480, 640))
         self.assertEqual(padding, (160, 0))
 
     def test_pad_bboxes(self):
