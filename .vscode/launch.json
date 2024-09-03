@@ -15,6 +15,14 @@
                 "yolo/configs/yolov1.yaml"
             ],
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Test Padding",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tests/test.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

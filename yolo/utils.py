@@ -165,7 +165,7 @@ def compute_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
     iou = inter_area / union_area
 
     return iou
-    
+
 class YOLOv1Loss(nn.Module):
     """
     YOLOv1 loss function.

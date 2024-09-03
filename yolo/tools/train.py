@@ -12,6 +12,7 @@ from typing import List
 sys.path.append(".")
 from yolo.models.yolov1 import YOLOv1
 from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne
+from datasets.utils import unpad_bboxes
 from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes, yolo_to_fsoco_bboxes
 
 if __name__ == "__main__":
@@ -69,9 +70,9 @@ if __name__ == "__main__":
     test_set = FSOCO_FiftyOne("test", fiftyone_dataset=dataset)
 
     # create the dataloaders
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=4)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=4)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=1)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
 
     # create the criterion
     criterion = YOLOv1Loss(conf)
@@ -102,7 +103,7 @@ if __name__ == "__main__":
 
         # iterate the training set
         loss_sum = 0.0
-        for i, (id, imgs, bboxes) in enumerate(train_loader):
+        for i, (id, imgs, bboxes, _) in enumerate(train_loader):
 
             # move the data to the device
             imgs = imgs.to(device)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
 
         # iterate the validation set
         loss_sum = 0
-        for i, (id, imgs, bboxes) in enumerate(val_loader):
+        for i, (id, imgs, bboxes, _) in enumerate(val_loader):
 
             # move the data to the device
             imgs = imgs.to(device)
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     
     # iterate the test set
     loss_sum = 0
-    for i, (id, imgs, bboxes) in enumerate(test_loader):
+    for i, (id, imgs, bboxes, padding_px) in enumerate(test_loader):
 
         # move the data to the device
         imgs = imgs.to(device)
@@ -199,6 +200,9 @@ if __name__ == "__main__":
         bboxes_fsoco = yolo_to_fsoco_bboxes(preds, (int(args.img_height), int(args.img_width)), 
                                       grid_size=int(conf['grid_size']), n_predictors=int(conf['n_predictors']),
                                       n_classes=int(conf['n_classes']))
+        
+        # unpad the bounding boxes
+        bboxes_fsoco = unpad_bboxes(bboxes_fsoco, (int(args.img_height), int(args.img_width)), padding_px)
         
         # create the predictions
         preds_fifty: List[fo.Detection] = []
