@@ -46,11 +46,21 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
     new_width_padded = new_width + pad_width
     new_height_padded = new_height + pad_height
 
-    # convert the bounding boxes
-    bboxes[:, 0] *= new_width / new_height_padded
-    bboxes[:, 1] *= new_height / new_height_padded
-    bboxes[:, 2] *= new_height / new_height_padded
-    bboxes[:, 3] *= new_width / new_width_padded
+    # convert to pixel coordinates
+    bboxes[:, 0] *= new_width
+    bboxes[:, 1] *= new_height
+    bboxes[:, 2] *= new_height 
+    bboxes[:, 3] *= new_width
+
+    # add the padding to the boundin coordinates
+    bboxes[:, 0] += pad_width / 2
+    bboxes[:, 1] += pad_height / 2
+
+    # normalize
+    bboxes[:, 0] /= new_width_padded
+    bboxes[:, 1] /= new_height_padded
+    bboxes[:, 2] /= new_height_padded
+    bboxes[:, 3] /= new_width_padded
 
     return img, bboxes, (pad_height, pad_width)
 
@@ -70,14 +80,24 @@ def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int, int], padding
     # get the image dimensions
     height, width = padded_img_dims
 
-    # get the image dimnensions without padding
+    # get the image dimensions without padding
     new_width = width - padding[1]
     new_height = height - padding[0]
 
-    # convert back to normalized values in the unpadded image
-    bboxes[:, 0] *= width / new_width
-    bboxes[:, 1] *= height / new_height
-    bboxes[:, 2] *= height / new_height
-    bboxes[:, 3] *= width / new_width
+    # convert to pixel coordinates
+    bboxes[:, 0] *= width
+    bboxes[:, 1] *= height
+    bboxes[:, 2] *= height
+    bboxes[:, 3] *= width
+
+    # remove the padding from the bounding box coordinates
+    bboxes[:, 0] -= padding[1] / 2
+    bboxes[:, 1] -= padding[0] / 2
+
+    # convert to normalized values in the unpadded image
+    bboxes[:, 0] /= new_width
+    bboxes[:, 1] /= new_height
+    bboxes[:, 2] /= new_height
+    bboxes[:, 3] /= new_width
 
     return bboxes
