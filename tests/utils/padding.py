@@ -24,3 +24,15 @@ class TestPadding(unittest.TestCase):
         self.assertAlmostEqual(padded_bboxes[0, 1], 7/30)
         self.assertAlmostEqual(padded_bboxes[0, 2], 2/30)
         self.assertAlmostEqual(padded_bboxes[0, 3], 0.1)
+
+    def test_unpad_bboxes(self):
+        img = torch.rand(3, 1000, 2000)
+        bboxes = torch.tensor([[0.1, 0.1, 0.1, 0.1, 0], [0.2, 0.2, 0.2, 0.2, 1]])
+        target_size = (480, 640)
+        padded_img, padded_bboxes, padding = pad_image(img, bboxes, target_size)
+        unpadded_bboxes = unpad_bboxes(padded_bboxes, (480, 640), padding)
+        self.assertEqual(unpadded_bboxes.size(), (2, 5))
+        self.assertEqual(unpadded_bboxes[0, 0], 0.1)
+        self.assertEqual(unpadded_bboxes[0, 1], 0.1)
+        self.assertEqual(unpadded_bboxes[0, 2], 0.1)
+        self.assertEqual(unpadded_bboxes[0, 3], 0.1)
