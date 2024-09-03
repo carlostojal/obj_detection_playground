@@ -66,13 +66,13 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
 
     return img, bboxes, (pad_height, pad_width)
 
-def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: torch.Tensor, padding: torch.Tensor) -> torch.Tensor:
+def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int], padding: torch.Tensor) -> torch.Tensor:
     """
     Unpad the bounding boxes to the original image size.
 
     Args:
         bboxes (torch.Tensor): Bounding boxes tensor shaped (batch_size, max_boxes, 5) where the last dimension is [x, y, h, w, class] normalized to padded image size.
-        padded_img_dims (torch.Tensor): Padded image dimensions (batch_size, 2).
+        padded_img_dims (Tuple[int]): Padded image dimensions tuple (height, width).
         padding (torch.Tensor): Padding applied to the image (batch_size, 2) (total in both sides in pixels, in the resized image).
 
     Returns:
@@ -80,8 +80,7 @@ def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: torch.Tensor, padding: t
     """
     
     # get the image dimensions
-    height = padded_img_dims[:, 0]
-    width = padded_img_dims[:, 1]
+    height, width = padded_img_dims
 
     # get the image dimensions without padding
     new_width = width - padding[:, 1]
