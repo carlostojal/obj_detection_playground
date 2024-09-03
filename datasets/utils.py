@@ -29,7 +29,7 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
         height_ratio = height / target_size[0]
         new_height = target_size[0]
         new_width = int(width / height_ratio)
-    img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(new_height, new_width), mode='bilinear', align_corners=False).squeeze(0)
+    img = torch.nn.functional.interpolate(img.unsqueeze(0), size=(new_height, new_width), mode='bilinear', align_corners=False)
 
     # pad the image
     pad_width = target_size[1] - new_width
@@ -39,7 +39,7 @@ def pad_image(img: torch.Tensor, bboxes: torch.Tensor, target_size: Tuple[int, i
         pad_width += 1
     if pad_height % 2 != 0:
         pad_height += 1
-    img = torch.nn.functional.pad(img.unsqueeze(0), (pad_width/2, pad_width/2, pad_height/2, pad_height/2), mode='constant', value=0).squeeze(0)
+    img = torch.nn.functional.pad(img, (int(pad_width/2), int(pad_width/2), int(pad_height/2), int(pad_height/2)), mode='constant', value=0).squeeze(0)
 
     # the new_width, new_height par are the unpadded resized image dimensions
     # calculate the new padded dimensions
