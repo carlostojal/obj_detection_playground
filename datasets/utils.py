@@ -71,7 +71,7 @@ def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int, int], padding
     Args:
         bboxes (torch.Tensor): Bounding boxes tensor shaped (max_boxes, 5) where the last dimension is [x, y, h, w, class] normalized to padded image size.
         padded_img_dims (Tuple[int, int]): Padded image dimensions (height, width).
-        padding (Tuple[int, int]): Padding applied to the image (height, width) (total in both sides in pixels).
+        padding (Tuple[int, int]): Padding applied to the image (height, width) (total in both sides in pixels, in the resized image).
 
     Returns:
         (torch.Tensor) Unpadded bounding boxes tensor shaped (max_boxes, 5) where the last dimension is [x, y, h, w, class].
