@@ -83,20 +83,25 @@ def unpad_bboxes(bboxes: torch.Tensor, padded_img_dims: Tuple[int], padding: tor
     height, width = padded_img_dims
 
     # get the image dimensions without padding
-    new_width = width - padding[:, 1]
-    new_height = height - padding[:, 0]
+    new_width = width - padding[:, 1] # shaped (batch_size)
+    new_height = height - padding[:, 0] # shaped (batch_size)
 
     # convert to pixel coordinates
-    bboxes[..., 0] *= width
+    bboxes[..., 0] *= width # shaped (batch_size, num_boxes)
     bboxes[..., 1] *= height
     bboxes[..., 2] *= height
     bboxes[..., 3] *= width
 
+    # repeat the padding for each bounding box
+    padding = padding.unsqueeze(1).repeat(1, bboxes.size(1), 1) # shaped (batch_size, num_boxes, 2)
+
     # remove the padding from the bounding box coordinates
-    bboxes[..., 0] -= padding[:, 1] / 2
-    bboxes[..., 1] -= padding[:, 0] / 2
+    bboxes[..., 0] -= padding[..., 1] / 2
+    bboxes[..., 1] -= padding[..., 0] / 2
 
     # convert to normalized values in the unpadded image
+    new_width = new_width.unsqueeze(1).repeat(1, bboxes.size(1))
+    new_height = new_height.unsqueeze(1).repeat(1, bboxes.size(1))
     bboxes[..., 0] /= new_width
     bboxes[..., 1] /= new_height
     bboxes[..., 2] /= new_height

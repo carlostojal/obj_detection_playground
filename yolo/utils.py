@@ -94,7 +94,7 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
         n_classes (int): Number of classes in the dataset.
 
     Returns:
-        (torch.Tensor) Bounding boxes in the FSOCO format shaped (batch_size, n_boxes, 5) where the last dimension is [x, y, h, w, class].
+        (torch.Tensor) Bounding boxes in the FSOCO format shaped (batch_size, n_boxes, 6) where the last dimension is [x, y, h, w, confidence, class].
     """
 
     batch_size = bboxes.size(0)
@@ -105,7 +105,7 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
     cell_height, cell_width = img_dims[0] / S, img_dims[1] / S
 
     # create the bounding boxes tensor
-    fsoco_bboxes = torch.zeros((batch_size, n_bboxes, 5), device=bboxes.device)
+    fsoco_bboxes = torch.zeros((batch_size, n_bboxes, 6), device=bboxes.device)
 
     # iterate the batches
     for b in range(batch_size):
@@ -119,11 +119,12 @@ def yolo_to_fsoco_bboxes(bboxes: torch.Tensor, img_dims: Tuple[int], grid_size: 
                     # get the bounding box
                     bbox = fsoco_bboxes[b, gy * S + gx * n_predictors + p]
                     # set the bounding box
-                    bbox[0] = (gx + grid_cell[0]) * cell_width[b]
-                    bbox[1] = (gy + grid_cell[1]) * cell_height[b]
-                    bbox[2] = grid_cell[2] * cell_width[b]
-                    bbox[3] = grid_cell[3] * cell_height[b]
-                    bbox[4] = grid_cell[p*5:].argmax()
+                    bbox[0] = (gx + grid_cell[0]) * cell_width
+                    bbox[1] = (gy + grid_cell[1]) * cell_height
+                    bbox[2] = grid_cell[2] * cell_width
+                    bbox[3] = grid_cell[3] * cell_height
+                    bbox[4] = grid_cell[4]
+                    bbox[5] = bboxes[b, gx, gy, n_predictors*5:].argmax()
 
     return fsoco_bboxes
 

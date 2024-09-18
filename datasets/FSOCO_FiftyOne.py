@@ -14,6 +14,8 @@ classes_dict = {
     "unknown_cone": 4
 }
 
+classes_list = list(classes_dict.keys())
+
 class FSOCO_FiftyOne(Dataset):
     """
     FSOCO dataset loaded from FiftyOne.
@@ -90,6 +92,8 @@ class FSOCO_FiftyOne(Dataset):
 
         # pad the image and bounding boxes
         img, bboxes, padding_px = pad_image(img, bboxes, (self.img_height, self.img_width))
+
+        img = img.squeeze()
 
         padding_px = torch.tensor(padding_px)
         

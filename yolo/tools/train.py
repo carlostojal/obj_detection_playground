@@ -11,7 +11,7 @@ import yaml
 from typing import List
 sys.path.append(".")
 from yolo.models.yolov1 import YOLOv1
-from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne
+from datasets.FSOCO_FiftyOne import FSOCO_FiftyOne, classes_list
 from datasets.utils import unpad_bboxes
 from yolo.utils import YOLOv1Loss, fsoco_to_yolo_bboxes, yolo_to_fsoco_bboxes
 
@@ -70,9 +70,9 @@ if __name__ == "__main__":
     test_set = FSOCO_FiftyOne("test", fiftyone_dataset=dataset)
 
     # create the dataloaders
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True, num_workers=1)
-    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
-    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False, num_workers=1)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=int(conf['batch_size']), shuffle=True)
+    val_loader = torch.utils.data.DataLoader(val_set, batch_size=int(conf['batch_size']), shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_set, batch_size=int(conf['batch_size']), shuffle=False)
 
     # create the criterion
     criterion = YOLOv1Loss(conf)
@@ -187,6 +187,7 @@ if __name__ == "__main__":
         # move the data to the device
         imgs = imgs.to(device)
         bboxes = bboxes.to(device)
+        padding_px = padding_px.to(device)
 
         # convert the bounding boxes to the YOLO format
         bboxes = fsoco_to_yolo_bboxes(bboxes, (int(args.img_height), int(args.img_width)), 
@@ -214,13 +215,14 @@ if __name__ == "__main__":
                 # get the bounding box
                 bbox = bboxes_fsoco[j, k]
                 # create the detection
-                detection = fo.Detection(label=conf['classes'][torch.argmax(bbox[5:])],
+                detection = fo.Detection(label=conf['classes'][int(bbox[5].item())],
                                           bounding_box=bbox[:4].tolist(),
                                           confidence=bbox[4].item())
                 # add the detection to the list
                 preds_fifty.append(detection)
-        dataset[id]["predictions"] = fo.Detections(detections=preds_fifty)
-        dataset[id].save()
+        sample = dataset.select(id)
+        sample["predictions"] = fo.Detections(detections=preds_fifty)
+        dataset.save()
 
         # increment the loss sum
         loss_sum += loss.item()
